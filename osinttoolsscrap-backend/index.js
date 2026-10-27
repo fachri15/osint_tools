@@ -41,27 +41,34 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount seluruh endpoint API di prefix /api
+// Mount seluruh endpoint API di prefix /api dan / (kompatibilitas cPanel Passenger)
 app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
 
-// Jalankan Server
-const server = app.listen(PORT, () => {
-  console.log(`\n======================================================`);
-  console.log(`🛡️  OSINT Tools Backend API Server is running`);
-  console.log(`🔗 Local URL: http://localhost:${PORT}`);
-  console.log(`📡 API Endpoints Root: http://localhost:${PORT}/api`);
-  console.log(`======================================================\n`);
-});
+// Jalankan Server (Kompatibel dengan Localhost & cPanel Phusion Passenger)
+if (typeof PhusionPassenger !== 'undefined') {
+  PhusionPassenger.configure({ autoInstall: false });
+  app.listen('passenger', () => {
+    console.log('🛡️ OSINT Tools Backend API Server is running on cPanel Phusion Passenger');
+  });
+} else {
+  app.listen(PORT, () => {
+    console.log(`\n======================================================`);
+    console.log(`🛡️  OSINT Tools Backend API Server is running`);
+    console.log(`🔗 Local URL: http://localhost:${PORT}`);
+    console.log(`📡 API Endpoints Root: http://localhost:${PORT}/api`);
+    console.log(`======================================================\n`);
+  });
+}
+
+module.exports = app;
 
 // Graceful Shutdown
 process.on('SIGINT', async () => {
   console.log('\nShutting down server...');
   await prisma.$disconnect();
-  server.close(() => {
-    console.log('Server stopped.');
-    process.exit(0);
-  });
+  process.exit(0);
 });
